@@ -57,6 +57,9 @@
     <ClCompile Include="Camera\CameraBase.cpp">
       <Filter>Source Files\Camera</Filter>
     </ClCompile>
+    <ClCompile Include="Process\AnalyzerBase.cpp">
+      <Filter>Source Files\Process</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="imageprocess.h">
@@ -74,10 +77,18 @@
     <QtMoc Include="Camera\CameraBase.h">
       <Filter>Source Files\Camera</Filter>
     </QtMoc>
+    <QtMoc Include="Process\AnalyzerBase.h">
+      <Filter>Source Files\Process</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera\CameraDef.h">
       <Filter>Source Files\Camera</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="SettingsDialog.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
   </ItemGroup>
 </Project>

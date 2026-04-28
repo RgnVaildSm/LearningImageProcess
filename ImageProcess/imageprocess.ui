@@ -43,7 +43,7 @@
      <number>0</number>
     </property>
     <item>
-     <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,1">
+     <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,1">
       <property name="spacing">
        <number>3</number>
       </property>
@@ -126,6 +126,9 @@
          <string>关闭</string>
         </property>
        </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="comboBoxAlgorithm"/>
       </item>
       <item>
        <widget class="QPushButton" name="pushButtonAnalyzer">

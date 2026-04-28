@@ -109,6 +109,12 @@ QCameraFormat CameraBase::GetCurrentCameraFormat() const
     return m_camera->cameraFormat();
 }
 
+QString CameraBase::GetCameraSerialNumber() const
+{
+    //if (m_)
+    return QString("0.0.0.1");
+}
+
 QList<QCameraDevice> CameraBase::GetCameraDevices()
 {
     return QMediaDevices::videoInputs();

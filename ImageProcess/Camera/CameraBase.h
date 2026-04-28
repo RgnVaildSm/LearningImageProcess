@@ -13,6 +13,7 @@ public:
     virtual void Snap();
     virtual bool IsOpen() const;
     QCameraFormat GetCurrentCameraFormat() const;
+    QString GetCameraSerialNumber() const;
 
 signals:
     void frameReady(const QImage& frame);

@@ -1,47 +1,45 @@
 ﻿#include "imageprocess.h"
 #include <qboxlayout.h>
 #include <algorithm>
-#include "SharpnessAnalyzer.h"
-#include "AnalyzerChartWidget.h"
-#include "SettingDialog.h"
 #include <qdockwidget.h>
 #include <qmenu.h>
 #include <qmenubar.h>
 #include <qaction.h>
+#include "SharpnessAnalyzer.h"
 
 ImageProcess::ImageProcess(QWidget *parent)
     : QMainWindow(parent)
     , m_camera(new CameraBase(this))
     , m_timer(new QTimer(this))
+    , m_labelCameraInfo(new QLabel(this))
+    , m_AnalyzerChart(new AnalyzerChartWidget())
+    , m_settingsDialog(new SettingsDialog(this))
+    , m_threadManager(new AnalyzerThreadManager(this))
 {
     ui.setupUi(this);
-    m_labelCameraInfo = new QLabel(this);
     ui.statusBar->addPermanentWidget(m_labelCameraInfo);
-    m_AnalyzerChart = new AnalyzerChartWidget();
     ui.dockWidget->setWidget(m_AnalyzerChart);
-    ui.dockWidget->setWindowTitle(QStringLiteral("分析结果"));
-
-    // 创建分析器并移到后台线程
-    m_sharpnessAnalyzer = new SharpnessAnalyzer(); // no parent
-    m_sharpnessThread = new QThread(this);
-    m_sharpnessAnalyzer->moveToThread(m_sharpnessThread);
-    connect(m_sharpnessThread, &QThread::finished, m_sharpnessAnalyzer, &QObject::deleteLater);
-    m_sharpnessThread->start();
-
-    m_settingsDialog = new SettingsDialog(this);
-    connect(ui.actionSetting, &QAction::triggered, this, &ImageProcess::OnShowSettings);
-
+    for(auto& item : supportedAlgorithms)
+    {
+        ui.comboBoxAlgorithm->addItem(item);
+    }
+    ui.comboBoxAlgorithm->setCurrentIndex(0);
+    ui.dockWidget->setWindowTitle(AnalyzerFactory::getAnalyzerName(m_algorithmType));
+    m_threadManager->createAnalyzer<SharpnessAnalyzer>();   // 创建默认分析器
+    
     //连接信号和槽
+    connect(ui.actionSetting,  &QAction::triggered,        this, &ImageProcess::OnShowSettings);
     connect(m_timer.get(),     &QTimer::timeout,           this, &ImageProcess::UpdateTimer);
     connect(m_camera.get(),    &CameraBase::frameReady,    this, &ImageProcess::UpdateVideoFrame);
     connect(m_camera.get(),    &CameraBase::errorOccurred, this, &ImageProcess::HandleError);
-    connect(m_camera.get(),    &CameraBase::formatChanged, this, &ImageProcess::OnCameraFormatChanged);// 当 CameraBase 在 active 后报告格式时，更新状态栏
-    connect(m_camera.get(),    &CameraBase::frameReady,    m_sharpnessAnalyzer, &SharpnessAnalyzer::analyze, Qt::QueuedConnection);// 连接帧到后台分析器（QueuedConnection 确保跨线程）
-    connect(m_sharpnessAnalyzer, &SharpnessAnalyzer::sharpnessReady, this, &ImageProcess::OnSharpnessUpdated, Qt::QueuedConnection);// 分析器结果到主线程的槽（自动 queued）
-    // 设置对话框参数改变应用到分析器（Queued）
-    connect(m_settingsDialog, &SettingsDialog::parametersChanged, this, [this](int newStrength){
-        // 使用 invokeMethod 保证跨线程调用安全
-        QMetaObject::invokeMethod(m_sharpnessAnalyzer, "setKernelStrength", Qt::QueuedConnection, Q_ARG(int, newStrength));
+    connect(m_camera.get(),    &CameraBase::formatChanged, this, &ImageProcess::OnCameraFormatChanged);
+    connect(m_camera.get(),    &CameraBase::frameReady, m_threadManager, &AnalyzerThreadManager::analyzeImage, Qt::QueuedConnection);
+    connect(m_settingsDialog,  &SettingsDialog::parametersChanged, this, [this](const AnalyzerParameters &p){
+        QMetaObject::invokeMethod(m_threadManager, "setParameters", Qt::QueuedConnection, Q_ARG(AnalyzerParameters, p));
+        });
+    connect(m_threadManager,   &AnalyzerThreadManager::resultReady, this, &ImageProcess::OnSharpnessUpdated);
+    connect(m_threadManager,   &AnalyzerThreadManager::resultTimeCounted, this, [this](double ms){
+        ui.statusBar->showMessage(QStringLiteral("分析耗时: %1 ms").arg(ms), 1);
         });
     connect(ui.pushButtonOpen, &QPushButton::clicked, this, [this]() {
         if (m_camera.get()->IsOpen())
@@ -60,6 +58,10 @@ ImageProcess::ImageProcess(QWidget *parent)
                 if (m_camera.get()->IsOpen())
                 {
                     ui.comboBoxCameras->setEnabled(false);
+                    ui.comboBoxAlgorithm->setEnabled(false);
+                    m_settingsDialog->setWidgetEnabled(false);
+                    m_settingsDialog->setCameraName(it->description());
+                    m_settingsDialog->setCameraSerialNumber(m_camera->GetCameraSerialNumber());
                 }
             }
         }
@@ -67,6 +69,10 @@ ImageProcess::ImageProcess(QWidget *parent)
     connect(ui.pushButtonClose, &QPushButton::clicked, this, [ this ]() {
            m_camera->Stop();
            ui.comboBoxCameras->setEnabled(true);
+           ui.comboBoxAlgorithm->setEnabled(true);
+           m_settingsDialog->setWidgetEnabled(true);
+           m_settingsDialog->setCameraName(QString());
+           m_settingsDialog->setCameraSerialNumber(QString());
            if (m_labelCameraInfo) m_labelCameraInfo->clear();
            if (m_AnalyzerChart)   m_AnalyzerChart->clearSamples();
            ui.widgetVideo->findChild<QLabel*>("dynamicVideoLabel")->clear();
@@ -75,6 +81,7 @@ ImageProcess::ImageProcess(QWidget *parent)
            if (bchecked) ui.dockWidget->show();
            else          ui.dockWidget->hide();
         });
+    connect(ui.comboBoxAlgorithm, &QComboBox::currentIndexChanged, this, &ImageProcess::OnAlgorithmChanged);
     m_timer->start(1000);
     m_timer->start();
     ui.pushButtonAnalyzer->click();
@@ -82,19 +89,13 @@ ImageProcess::ImageProcess(QWidget *parent)
 
 ImageProcess::~ImageProcess()
 {
-    if (m_sharpnessThread) 
-    {
-        m_sharpnessThread->quit();
-        m_sharpnessThread->wait();
-    }
 }
 
 void ImageProcess::UpdateTimer()
 {
     //定时器触发时的处理逻辑，例如更新UI、检查相机状态等
-    if (!ui.comboBoxCameras->isEnabled() || m_camera.get()->IsOpen())
+    if (m_camera.get()->IsOpen())
         return;
-
     //必要时更新相机列表
     auto camerasList = m_camera->GetCameraDevices();
     ui.comboBoxCameras->clear();
@@ -144,8 +145,9 @@ void ImageProcess::UpdateVideoFrame(const QImage& frame)
 void ImageProcess::HandleError(const QString& errorString)
 {
     //处理相机错误的逻辑，例如显示错误消息、尝试重新连接等
-    ui.statusBar->showMessage(errorString, 5000); // 在状态栏显示错误信息，持续5秒
+    ui.statusBar->showMessage(errorString, 5000);
 }
+
 void ImageProcess::OnSharpnessUpdated(double value)
 {
     if (m_AnalyzerChart)
@@ -154,26 +156,15 @@ void ImageProcess::OnSharpnessUpdated(double value)
 
 void ImageProcess::OnShowSettings()
 {
-    QString camInfo;
-    auto index = ui.comboBoxCameras->currentIndex();
-    if (index >= 0)
+    if (m_camera.get()->IsOpen())
     {
-        auto camerasList = m_camera->GetCameraDevices();
-        auto id = ui.comboBoxCameras->itemData(index).toString();
-        auto it = std::find_if(camerasList.begin(), camerasList.end(), [&](const QCameraDevice &d) {
-            return d.id() == id;
-            });
-        if (it != camerasList.end())
-        {
-            auto fmt = m_camera->GetCurrentCameraFormat();
-            if (!fmt.isNull())
-                camInfo = QString("%1  %2x%3  @ %4").arg(it->description())
-                .arg(fmt.resolution().width()).arg(fmt.resolution().height()).arg(fmt.maxFrameRate());
-            else
-                camInfo = it->description();
-        }
+        m_settingsDialog->setWidgetEnabled(false);
     }
-    m_settingsDialog->setCameraInfo(camInfo);
+    else
+    {
+        m_settingsDialog->setWidgetEnabled(true);
+
+    }
     m_settingsDialog->exec();
 }
 
@@ -186,4 +177,27 @@ void ImageProcess::OnCameraFormatChanged(const QCameraFormat& fmt)
         .arg(fmt.maxFrameRate(), 0, 'f', 2);
     if (m_labelCameraInfo)
         m_labelCameraInfo->setText(info);
+}
+
+void ImageProcess::OnAlgorithmChanged(int index)
+{
+    if (index < 0 || index >= supportedAlgorithms.size())
+        return;
+    m_algorithmType = static_cast<AlgorithmType>(index);
+    ui.dockWidget->setWindowTitle(AnalyzerFactory::getAnalyzerName(m_algorithmType));
+    // 切换分析器
+    switch (m_algorithmType)
+    {
+    case AlgorithmType::Sharpness:
+        m_threadManager->createAnalyzer<SharpnessAnalyzer>();
+        break;
+    //case AlgorithmType::Laplacian:
+    //    m_threadManager->createAnalyzer<LaplacianAnalyzer>();
+    //    break;
+    //case AlgorithmType::Brenner:
+    //    m_threadManager->createAnalyzer<BrennerAnalyzer>();
+        break;
+    default:
+        break;
+    }
 }
