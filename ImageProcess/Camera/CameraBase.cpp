@@ -120,6 +120,13 @@ QList<QCameraDevice> CameraBase::GetCameraDevices()
     return QMediaDevices::videoInputs();
 }
 
+QCameraDevice CameraBase::GetCurrentCameraDevice() const
+{
+    if (!IsOpen())
+        return QCameraDevice();
+    return m_camera->cameraDevice();
+}
+
 void CameraBase::Snap()
 {
     if (m_imageCapture && IsOpen() && !m_bIsSnap) 
@@ -161,13 +168,6 @@ void CameraBase::handleVideoFrame(const QVideoFrame &frame)
         QImage img = frame.toImage();
         emit frameReady(img);
     }
-}
-
-QCameraDevice CameraBase::GetCurrentCameraDevice() const
-{
-    if (!IsOpen())
-        return QCameraDevice();
-    return m_camera->cameraDevice();
 }
 
 

@@ -43,9 +43,9 @@
      <number>0</number>
     </property>
     <item>
-     <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,1">
+     <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0,1">
       <property name="spacing">
-       <number>3</number>
+       <number>6</number>
       </property>
       <property name="sizeConstraint">
        <enum>QLayout::SetDefaultConstraint</enum>
@@ -63,7 +63,11 @@
        <number>6</number>
       </property>
       <item>
-       <widget class="QComboBox" name="comboBoxCameras"/>
+       <widget class="QComboBox" name="comboBoxCameras">
+        <property name="styleSheet">
+         <string notr="true">text-align: center;</string>
+        </property>
+       </widget>
       </item>
       <item>
        <widget class="QPushButton" name="pushButtonOpen">
@@ -98,7 +102,7 @@
          </size>
         </property>
         <property name="text">
-         <string>打开</string>
+         <string>Open</string>
         </property>
        </widget>
       </item>
@@ -123,19 +127,33 @@
          </size>
         </property>
         <property name="text">
-         <string>关闭</string>
+         <string>Close</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="comboBoxAlgorithm"/>
+       <widget class="QComboBox" name="comboBoxAlgorithm">
+        <property name="styleSheet">
+         <string notr="true">text-align: center;</string>
+        </property>
+       </widget>
       </item>
       <item>
        <widget class="QPushButton" name="pushButtonAnalyzer">
         <property name="text">
-         <string>实时数据</string>
+         <string>Data Table</string>
         </property>
         <property name="checkable">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBoxAnalyze">
+        <property name="text">
+         <string>Analyzed</string>
+        </property>
+        <property name="checked">
          <bool>true</bool>
         </property>
        </widget>
@@ -185,12 +203,12 @@
      <x>0</x>
      <y>0</y>
      <width>1285</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
     <property name="title">
-     <string>图像</string>
+     <string>Process</string>
     </property>
     <addaction name="actionSetting"/>
    </widget>
@@ -206,6 +224,12 @@
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QDockWidget" name="dockWidget">
+   <property name="minimumSize">
+    <size>
+     <width>81</width>
+     <height>100</height>
+    </size>
+   </property>
    <property name="allowedAreas">
     <set>Qt::BottomDockWidgetArea|Qt::TopDockWidgetArea</set>
    </property>
@@ -213,6 +237,12 @@
     <number>8</number>
    </attribute>
    <widget class="QWidget" name="dockWidgetContents">
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
     <layout class="QVBoxLayout" name="verticalLayout_2">
      <property name="spacing">
       <number>0</number>
@@ -234,7 +264,7 @@
   </widget>
   <action name="actionSetting">
    <property name="text">
-    <string>设置</string>
+    <string>Settings</string>
    </property>
   </action>
  </widget>

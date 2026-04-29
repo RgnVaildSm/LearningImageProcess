@@ -5,6 +5,7 @@
 #include <qthread.h>
 #include <QCoreApplication>
 #include <SettingDialog.h>
+#include <atomic>
 
 struct AnalyzerAlgorithm {
     enum class AlgorithmType{
@@ -85,6 +86,10 @@ public:
     void analyzeImage(const QImage& image);        // 发送图片分析
     void setParameters(const AnalyzerParameters& params);  // 设置参数
 
+    //暂停/恢复分析
+    void pauseProcessing(){ m_paused = true; }
+    void resumeProcessing() { m_paused = false; }
+
 signals:
     void resultReady(double value);
     void resultTimeCounted(double ms);
@@ -104,6 +109,7 @@ private:
 private:
     QThread*        m_thread;           // 唯一工作线程
     AnalyzerBase*   m_currentAnalyzer;  // 当前分析器
+    std::atomic<bool> m_paused{false};
 };
 
 template<typename T>

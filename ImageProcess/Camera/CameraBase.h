@@ -23,12 +23,12 @@ signals:
 
 public slots:
     QList<QCameraDevice> GetCameraDevices();
+    QCameraDevice GetCurrentCameraDevice() const;
 
 private slots:
     void processFrame(int id, const QImage& img);
     void handleError(int id, QImageCapture::Error error, const QString &errorString);
     void handleVideoFrame(const QVideoFrame &frame);
-    QCameraDevice GetCurrentCameraDevice() const;
 
 private:
     Q_DISABLE_COPY_MOVE(CameraBase);

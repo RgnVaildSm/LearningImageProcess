@@ -68,7 +68,7 @@ struct AnalyzerParameters{
         , fmFeatureNum(500)
         , fmMatchThreshold(0.75)
         , detectAlgorithm(DetectAlgorithm::BackgroundSubtraction)
-        , detectThreshold(50.0)
+        , detectThreshold(0.5)
     {
     }
     AnalyzerParameters(const AnalyzerParameters& other) = default;
@@ -86,7 +86,7 @@ public:
     explicit SettingsDialog(QWidget* parent = nullptr);
     void setCameraName(const QString& name);
     void setCameraSerialNumber(const QString& sn);
-    void setWidgetEnabled(bool enabled);
+    void setWidgetEnabled(int index, bool enabled);
     AnalyzerParameters getParameters() const { return m_parameters; }
     bool checkParametersValid(const AnalyzerParameters& param) const;
 

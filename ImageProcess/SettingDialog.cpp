@@ -28,13 +28,11 @@ void SettingsDialog::setCameraSerialNumber(const QString& sn)
     ui.lineEditSerialNumber->setText(sn);
 }
 
-void SettingsDialog::setWidgetEnabled(bool enabled)
+void SettingsDialog::setWidgetEnabled(int index, bool enabled)
 {
-    for (auto& widget : ui.tabWidget->findChildren<QWidget*>())
-    {
-        if (widget)
-            widget->setEnabled(enabled);
-    }
+    if (index < 0 || index >= ui.tabWidget->count())
+        return;
+    ui.tabWidget->setTabEnabled(index, enabled);
 }
 
 bool SettingsDialog::checkParametersValid(const AnalyzerParameters& param) const
@@ -92,14 +90,6 @@ void SettingsDialog::ParameterDetectInit()
 
 void SettingsDialog::accept()
 {
-    for (auto& widget : ui.tabWidget->findChildren<QWidget*>())
-    {
-        if (widget && !widget->isEnabled())
-        {
-            QDialog::accept();
-            return;
-        }
-    }
     AnalyzerParameters newParams;
     //从 UI 获取参数值并填充 newParams
     newParams.sharpnessAlgorithm    = static_cast<AnalyzerParameters::SharpnessAlgorithm>(ui.cmBoxSharpnessAlgorithm->currentIndex());

@@ -5,6 +5,7 @@
 #include <qmenu.h>
 #include <qmenubar.h>
 #include <qaction.h>
+#include <qexception.h>
 #include "SharpnessAnalyzer.h"
 
 ImageProcess::ImageProcess(QWidget *parent)
@@ -23,72 +24,101 @@ ImageProcess::ImageProcess(QWidget *parent)
     {
         ui.comboBoxAlgorithm->addItem(item);
     }
+    // 创建默认分析器
     ui.comboBoxAlgorithm->setCurrentIndex(0);
     ui.dockWidget->setWindowTitle(AnalyzerFactory::getAnalyzerName(m_algorithmType));
-    m_threadManager->createAnalyzer<SharpnessAnalyzer>();   // 创建默认分析器
+    m_threadManager->createAnalyzer<SharpnessAnalyzer>();
     
-    //连接信号和槽
-    connect(ui.actionSetting,  &QAction::triggered,        this, &ImageProcess::OnShowSettings);
-    connect(m_timer.get(),     &QTimer::timeout,           this, &ImageProcess::UpdateTimer);
-    connect(m_camera.get(),    &CameraBase::frameReady,    this, &ImageProcess::UpdateVideoFrame);
-    connect(m_camera.get(),    &CameraBase::errorOccurred, this, &ImageProcess::HandleError);
-    connect(m_camera.get(),    &CameraBase::formatChanged, this, &ImageProcess::OnCameraFormatChanged);
-    connect(m_camera.get(),    &CameraBase::frameReady, m_threadManager, &AnalyzerThreadManager::analyzeImage, Qt::QueuedConnection);
-    connect(m_settingsDialog,  &SettingsDialog::parametersChanged, this, [this](const AnalyzerParameters &p){
-        QMetaObject::invokeMethod(m_threadManager, "setParameters", Qt::QueuedConnection, Q_ARG(AnalyzerParameters, p));
-        });
-    connect(m_threadManager,   &AnalyzerThreadManager::resultReady, this, &ImageProcess::OnSharpnessUpdated);
-    connect(m_threadManager,   &AnalyzerThreadManager::resultTimeCounted, this, [this](double ms){
-        ui.statusBar->showMessage(QStringLiteral("分析耗时: %1 ms").arg(ms), 1);
-        });
-    connect(ui.pushButtonOpen, &QPushButton::clicked, this, [this]() {
-        if (m_camera.get()->IsOpen())
-            return;
-        auto index = ui.comboBoxCameras->currentIndex();
-        if (index >= 0)
-        {
-            const QString deviceId = ui.comboBoxCameras->itemData(index).toString();
-            auto camerasList = m_camera->GetCameraDevices();
-            auto it = std::find_if(camerasList.begin(), camerasList.end(), [&](const QCameraDevice &d) {
-                return d.id() == deviceId;
-                });
-            if (it != camerasList.end())
-            {
-                m_camera->Start(*it);
-                if (m_camera.get()->IsOpen())
-                {
-                    ui.comboBoxCameras->setEnabled(false);
-                    ui.comboBoxAlgorithm->setEnabled(false);
-                    m_settingsDialog->setWidgetEnabled(false);
-                    m_settingsDialog->setCameraName(it->description());
-                    m_settingsDialog->setCameraSerialNumber(m_camera->GetCameraSerialNumber());
-                }
-            }
-        }
-        });
-    connect(ui.pushButtonClose, &QPushButton::clicked, this, [ this ]() {
-           m_camera->Stop();
-           ui.comboBoxCameras->setEnabled(true);
-           ui.comboBoxAlgorithm->setEnabled(true);
-           m_settingsDialog->setWidgetEnabled(true);
-           m_settingsDialog->setCameraName(QString());
-           m_settingsDialog->setCameraSerialNumber(QString());
-           if (m_labelCameraInfo) m_labelCameraInfo->clear();
-           if (m_AnalyzerChart)   m_AnalyzerChart->clearSamples();
-           ui.widgetVideo->findChild<QLabel*>("dynamicVideoLabel")->clear();
-        });
-    connect(ui.pushButtonAnalyzer, &QPushButton::clicked, this, [this](bool bchecked){
-           if (bchecked) ui.dockWidget->show();
-           else          ui.dockWidget->hide();
-        });
-    connect(ui.comboBoxAlgorithm, &QComboBox::currentIndexChanged, this, &ImageProcess::OnAlgorithmChanged);
-    m_timer->start(1000);
+    // 连接信号和槽
+    connect(ui.pushButtonOpen,      &QPushButton::clicked,                          this, &ImageProcess::on_pushButtonOpen_clicked);
+    connect(ui.pushButtonClose,     &QPushButton::clicked,                          this, &ImageProcess::on_pushButtonClose_clicked);
+    connect(ui.pushButtonAnalyzer,  &QPushButton::clicked,                          this, &ImageProcess::on_pushButtonAnalyzer_clicked);
+    connect(ui.checkBoxAnalyze,     &QCheckBox::clicked,                            this, &ImageProcess::on_checkBoxAnalyze_checked);
+    connect(ui.actionSetting,       &QAction::triggered,                            this, &ImageProcess::OnShowSettings);
+    connect(m_timer.get(),          &QTimer::timeout,                               this, &ImageProcess::UpdateTimer);
+    connect(m_camera.get(),         &CameraBase::errorOccurred,                     this, &ImageProcess::HandleError, Qt::QueuedConnection);
+    connect(m_settingsDialog,       &SettingsDialog::parametersChanged,             this, &ImageProcess::OnParametersChanged);
+    connect(m_threadManager,        &AnalyzerThreadManager::resultReady,            this, &ImageProcess::OnAnalyzeResult);
+    connect(m_threadManager,        &AnalyzerThreadManager::resultTimeCounted,      this, &ImageProcess::OnAnalyzeTimeCounted);
+    connect(ui.comboBoxAlgorithm,   &QComboBox::currentIndexChanged,                this, &ImageProcess::OnAlgorithmChanged);
+    m_timer->start(500);
     m_timer->start();
-    ui.pushButtonAnalyzer->click();
+    ui.dockWidget->show();
 }
 
 ImageProcess::~ImageProcess()
 {
+}
+
+void ImageProcess::on_pushButtonOpen_clicked(bool bChecked)
+{
+    if (m_camera.get()->IsOpen())
+        return;
+    auto index = ui.comboBoxCameras->currentIndex();
+    if (index >= 0)
+    {
+        const QString deviceId = ui.comboBoxCameras->itemData(index).toString();
+        auto camerasList = m_camera->GetCameraDevices();
+        auto it = std::find_if(camerasList.begin(), camerasList.end(), [&](const QCameraDevice &d) {
+            return d.id() == deviceId;
+            });
+        if (it != camerasList.end())
+        {
+            m_camera->Start(*it);
+            if (m_camera.get()->IsOpen())
+            {
+                ui.comboBoxCameras->setEnabled(false);
+                ui.comboBoxAlgorithm->setEnabled(false);
+                m_settingsDialog->setCameraName(it->description());
+                m_settingsDialog->setCameraSerialNumber(m_camera->GetCameraSerialNumber());
+                connect(m_camera.get(),&CameraBase::frameReady,    this, &ImageProcess::UpdateVideoFrame);
+                connect(m_camera.get(),&CameraBase::formatChanged, this, &ImageProcess::OnCameraFormatChanged);
+                connect(m_camera.get(),&CameraBase::frameReady, m_threadManager, &AnalyzerThreadManager::analyzeImage, Qt::QueuedConnection);
+            }
+        }
+    }
+    else
+    {
+        ui.statusBar->showMessage(QStringLiteral("Can Not Find Any Available Camera!"), 2000);
+    }
+}
+
+void ImageProcess::on_pushButtonClose_clicked(bool bChecked)
+{
+    closeCamera();
+    setSettingsDialog(true);
+}
+
+void ImageProcess::on_pushButtonAnalyzer_clicked(bool bChecked)
+{
+    bChecked ? ui.dockWidget->show() : ui.dockWidget->hide();
+}
+
+void ImageProcess::on_checkBoxAnalyze_checked(bool bChecked)
+{
+    bChecked ? m_threadManager->resumeProcessing() : m_threadManager->pauseProcessing();
+}
+
+void ImageProcess::setSettingsDialog(bool bEnable)
+{
+    //除开当前分析器以外的算法设置项根据相机状态启用或禁用
+    for (int i = 0; i < ui.comboBoxAlgorithm->count(); ++i)
+    {
+        AlgorithmType algoType = static_cast<AlgorithmType>(i);
+        m_settingsDialog->setWidgetEnabled(i, bEnable ? true : (algoType == m_algorithmType));
+    }
+}
+
+void ImageProcess::closeCamera()
+{
+    m_camera->Stop();
+    ui.comboBoxCameras->setEnabled(true);
+    ui.comboBoxAlgorithm->setEnabled(true);
+    m_settingsDialog->setCameraName(QString());
+    m_settingsDialog->setCameraSerialNumber(QString());
+    if (m_labelCameraInfo) m_labelCameraInfo->clear();
+    if (m_AnalyzerChart)   m_AnalyzerChart->clearSamples();
+    ui.widgetVideo->findChild<QLabel*>("dynamicVideoLabel")->clear();
 }
 
 void ImageProcess::UpdateTimer()
@@ -114,7 +144,6 @@ void ImageProcess::UpdateVideoFrame(const QImage& frame)
     if (!label) label = ui.widgetVideo->findChild<QLabel*>();
     if (!label)
     {
-        // 在占位 widget 上创建一个新的 QLabel 并填充它
         label = new QLabel(ui.widgetVideo);
         label->setObjectName("dynamicVideoLabel");
         label->setAlignment(Qt::AlignCenter);
@@ -129,8 +158,6 @@ void ImageProcess::UpdateVideoFrame(const QImage& frame)
         }
         ui.widgetVideo->layout()->addWidget(label);
     }
-
-    // 将帧转换为 QPixmap 并按显示区域等比缩放，平滑转换
     QPixmap pixmap = QPixmap::fromImage(frame);
     if (!pixmap.isNull())
     {
@@ -146,26 +173,52 @@ void ImageProcess::HandleError(const QString& errorString)
 {
     //处理相机错误的逻辑，例如显示错误消息、尝试重新连接等
     ui.statusBar->showMessage(errorString, 5000);
+    // 如果当前不在 GUI 线程，则排队回到 GUI 线程执行
+    if (QThread::currentThread() != qApp->thread()) 
+    {
+        QMetaObject::invokeMethod(this, "HandleError", Qt::QueuedConnection, Q_ARG(QString, errorString));
+        return;
+    }
+    if (m_settingsDialog && m_settingsDialog->isVisible()) 
+    {
+        m_settingsDialog->done(QDialog::Rejected);
+    }
+
+    // 断开相机并恢复 UI 状态
+    closeCamera();
+
+    //断开相机与分析器的连接，防止在相机发生错误后继续处理帧数据，相机打开时再连接
+    disconnect(m_camera.get(), &CameraBase::frameReady,    m_threadManager, &AnalyzerThreadManager::analyzeImage);
+    disconnect(m_camera.get(), &CameraBase::frameReady,    this,            &ImageProcess::UpdateVideoFrame);
+    disconnect(m_camera.get(), &CameraBase::formatChanged, this,            &ImageProcess::OnCameraFormatChanged);
 }
 
-void ImageProcess::OnSharpnessUpdated(double value)
+void ImageProcess::OnParametersChanged(const AnalyzerParameters& param)
+{
+    QMetaObject::invokeMethod(m_threadManager, "setParameters", Qt::QueuedConnection, Q_ARG(AnalyzerParameters, param));
+}
+
+void ImageProcess::OnAnalyzeResult(double value)
 {
     if (m_AnalyzerChart)
         m_AnalyzerChart->addSample(value);
 }
 
+void ImageProcess::OnAnalyzeTimeCounted(double ms)
+{
+}
+
 void ImageProcess::OnShowSettings()
 {
-    if (m_camera.get()->IsOpen())
+    setSettingsDialog(!m_camera.get()->IsOpen());
+    try 
     {
-        m_settingsDialog->setWidgetEnabled(false);
+        m_settingsDialog->exec();
+    } catch (const QException& ex) {
+        m_settingsDialog->reject();
+        m_settingsDialog->close();
+        ui.statusBar->showMessage(QStringLiteral("Settings Dialog Error: %1").arg(ex.what()), 5000);
     }
-    else
-    {
-        m_settingsDialog->setWidgetEnabled(true);
-
-    }
-    m_settingsDialog->exec();
 }
 
 void ImageProcess::OnCameraFormatChanged(const QCameraFormat& fmt)
@@ -201,3 +254,5 @@ void ImageProcess::OnAlgorithmChanged(int index)
         break;
     }
 }
+
+

@@ -78,19 +78,21 @@ QString AnalyzerFactory::getAnalyzerName(AlgorithmType type)
 {
     switch (type) {
     case AlgorithmType::Sharpness:
-        return QStringLiteral("锐度计算");
+        return QStringLiteral("Sharpness");
         //case AlgorithmType::FeatureMatch:
         //    return QStringLiteral("特征匹配");
         //case AlgorithmType::Detect:
         //    return QStringLiteral("检测");
     default:
-        return QStringLiteral("未知算法");
+        return QStringLiteral("Unknown");
     }
 }
 
 void AnalyzerThreadManager::analyzeImage(const QImage& image)
 {
     if (!m_currentAnalyzer) 
+        return;
+    if (m_paused)
         return;
     QMetaObject::invokeMethod(m_currentAnalyzer, "analyze", Qt::QueuedConnection, Q_ARG(QImage, image));
 }

@@ -21,6 +21,8 @@ AnalyzerChartWidget::AnalyzerChartWidget(QWidget* parent)
     chart()->legend()->hide();
     //chart()->setTitle("Analyzer Over Time");
     setRenderHints(QPainter::Antialiasing);
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    setMinimumHeight(200);
 }
 
 void AnalyzerChartWidget::addSample(double value)

@@ -23,12 +23,20 @@ public:
     ~ImageProcess();
 
 protected:
+    void setSettingsDialog(bool bEnable);
+    void closeCamera();
 
 private slots:
+    void on_pushButtonOpen_clicked(bool bChecked);
+    void on_pushButtonClose_clicked(bool bChecked);
+    void on_pushButtonAnalyzer_clicked(bool bChecked);
+    void on_checkBoxAnalyze_checked(bool bChecked);
     void UpdateTimer();
     void UpdateVideoFrame(const QImage& frame);
     void HandleError(const QString& errorString);
-    void OnSharpnessUpdated(double value);
+    void OnParametersChanged(const AnalyzerParameters& param);
+    void OnAnalyzeResult(double value);
+    void OnAnalyzeTimeCounted(double ms);
     void OnShowSettings();
     void OnCameraFormatChanged(const QCameraFormat& fmt);
     void OnAlgorithmChanged(int index);
