@@ -61,7 +61,7 @@ struct AnalyzerParameters{
     AnalyzerParameters()
         : sharpnessAlgorithm(SharpnessAlgorithm::Sobel)
         , sharpnessKernel(SharpnessKernel::K3x3)
-        , sharpnessThreshold(100)
+        , sharpnessThreshold(5)
         , sharpnessByGray(true)
         , fmAlgorithm(FMAlgorithm::ORB)
         , fmMatchMethod(MatchMethod::BruteForce)

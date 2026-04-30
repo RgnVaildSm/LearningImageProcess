@@ -1,11 +1,66 @@
 ﻿#include "AnalyzerBase.h"
 #include "SettingDialog.h"
 #include "SharpnessAnalyzer.h"
+#include "opencv2/opencv.hpp"
 
 AnalyzerBase::AnalyzerBase(QObject* parent)
     : QObject(parent)
 {
     m_params = new AnalyzerParameters;
+}
+
+void AnalyzerBase::QImage2Mat(const QImage& image, cv::Mat& mat)
+{
+    if (image.isNull())
+        return;
+    switch(image.format())
+    {
+        case QImage::Format_RGB32:
+        case QImage::Format_ARGB32:
+        case QImage::Format_ARGB32_Premultiplied:
+            mat = cv::Mat(image.height(), image.width(), CV_8UC4, const_cast<uchar*>(image.bits()), image.bytesPerLine()).clone();
+            break;
+        case QImage::Format_RGB888:
+        {
+            mat = cv::Mat(image.height(), image.width(), CV_8UC3, const_cast<uchar*>(image.bits()), image.bytesPerLine()).clone();
+            cv::cvtColor(mat, mat, cv::COLOR_RGB2BGR);
+        }
+            break;
+        case QImage::Format_Indexed8:
+            mat = cv::Mat(image.height(), image.width(), CV_8UC1, const_cast<uchar*>(image.bits()), image.bytesPerLine()).clone();
+            break;
+        default:
+            QImage converted = image.convertToFormat(QImage::Format_RGB888);
+            QImage2Mat(converted, mat);
+            break;
+    }
+}
+
+void AnalyzerBase::Mat2QImage(const cv::Mat& mat, QImage& image)
+{
+    if (mat.empty())
+        return;
+    switch(mat.type())
+    {
+        case CV_8UC1:
+            image = QImage(mat.data, mat.cols, mat.rows, mat.step, QImage::Format_Indexed8).copy();
+            break;
+        case CV_8UC3:
+        {
+            cv::Mat rgbMat;
+            cv::cvtColor(mat, rgbMat, cv::COLOR_BGR2RGB);
+            image = QImage(rgbMat.data, rgbMat.cols, rgbMat.rows, rgbMat.step, QImage::Format_RGB888).copy();
+        }
+            break;
+        case CV_8UC4:
+        {
+            image = QImage(mat.data, mat.cols, mat.rows, mat.step, QImage::Format_ARGB32).copy();
+        }
+            break;
+        default:
+            image = QImage();   // Unsupported format, return an empty image
+            break;
+    }
 }
 
 void AnalyzerBase::analyze(const QImage& image)

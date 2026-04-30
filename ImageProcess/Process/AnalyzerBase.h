@@ -6,6 +6,7 @@
 #include <QCoreApplication>
 #include <SettingDialog.h>
 #include <atomic>
+#include "opencv2/core.hpp"
 
 struct AnalyzerAlgorithm {
     enum class AlgorithmType{
@@ -29,6 +30,8 @@ class AnalyzerBase : public QObject
 public:
     explicit AnalyzerBase(QObject* parent = nullptr);
     virtual ~AnalyzerBase() = default;
+    static void QImage2Mat(const QImage& image, cv::Mat& mat);
+    static void Mat2QImage(const cv::Mat& mat, QImage& image);
 
 public slots:
     void analyze(const QImage& image);
