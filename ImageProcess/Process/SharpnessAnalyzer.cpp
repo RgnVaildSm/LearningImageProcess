@@ -46,6 +46,12 @@ double SharpnessAnalyzer::imageProcess(const QImage& image)
     return value;
 }
 
+/**
+* @brief Sobel 清晰度计算（基于梯度幅值的均值/方差）
+* @param src 输入图像（支持彩色/灰度，彩色会自动转灰度）
+* @param ksize Sobel 核大小（必须是奇数，默认3）
+* @return 清晰度值（值越大越清晰）
+*/
 double SharpnessAnalyzer::computeSobelSharpness(const cv::Mat& mat, int kernelSize, double threshold)
 {
     cv::Mat sobelX, sobelY;
@@ -57,13 +63,43 @@ double SharpnessAnalyzer::computeSobelSharpness(const cv::Mat& mat, int kernelSi
     return meanMagnitude[0];
 }
 
+/**
+* @brief Laplacian 清晰度计算（基于拉普拉斯方差）
+* @param src 输入图像（支持彩色/灰度，彩色会自动转灰度）
+* @param ksize Laplacian 核大小（必须是奇数，默认3）
+* @return 清晰度值（值越大越清晰）
+*/
 double SharpnessAnalyzer::computeLaplacianSharpness(const cv::Mat& mat, int kernelSize, double threshold)
 {
-    return 0.0;
+    cv::Mat laplacian;
+    cv::Laplacian(mat, laplacian, CV_64F, kernelSize);
+    cv::Scalar mean, stddev;
+    cv::meanStdDev(laplacian, mean, stddev);
+    return stddev[0] * stddev[0];
 }
 
+/**
+* @brief Brenner 清晰度计算（简单的梯度评价，适用于无噪声图像）
+* @param src 输入图像（支持彩色/灰度，彩色会自动转灰度）
+* @return 清晰度值（值越大越清晰）
+*/
 double SharpnessAnalyzer::computeBrennerSharpness(const cv::Mat& mat, int kernelSize, double threshold)
 {
-    return 0.0;
+    double brennerValue = 0.0;
+    int rows = mat.rows;
+    int cols = mat.cols;
+
+    // 遍历图像（行方向，间隔1列计算）
+    for (int i = 0; i < rows; ++i) {
+        const uchar* rowPtr = mat.ptr<uchar>(i);
+        for (int j = 0; j < cols - 2; ++j) { // 预留2个像素间隔
+            int diff = rowPtr[j + 2] - rowPtr[j];
+            brennerValue += diff * diff;
+        }
+    }
+
+    // 归一化（可选，根据需求调整）
+    brennerValue /= (rows * (cols - 2));
+    return brennerValue;
 }
 
