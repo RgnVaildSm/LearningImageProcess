@@ -55,7 +55,6 @@ void SettingsDialog::ParameterSharpnessInit()
     ui.cmBoxSharpnessKernel->addItem("7x7");
     ui.cmBoxSharpnessKernel->addItem("9x9");
     ui.lineEditSharpnessThreshold->setText("100");
-    ui.checkBoxSharpnessByGray->setChecked(true);
 
     ui.cmBoxSharpnessAlgorithm->setCurrentIndex(0);
     ui.cmBoxSharpnessKernel->setCurrentIndex(0);
@@ -95,7 +94,6 @@ void SettingsDialog::accept()
     newParams.sharpnessAlgorithm    = static_cast<AnalyzerParameters::SharpnessAlgorithm>(ui.cmBoxSharpnessAlgorithm->currentIndex());
     newParams.sharpnessKernel       = static_cast<AnalyzerParameters::SharpnessKernel>(ui.cmBoxSharpnessKernel->currentIndex());
     newParams.sharpnessThreshold    = ui.lineEditSharpnessThreshold->text().toInt();
-    newParams.sharpnessByGray       = ui.checkBoxSharpnessByGray->isChecked();
     newParams.fmAlgorithm           = static_cast<AnalyzerParameters::FMAlgorithm>(ui.cmBoxFMAlgorithm->currentIndex());
     newParams.fmMatchMethod         = static_cast<AnalyzerParameters::MatchMethod>(ui.cmBoxFMMatch->currentIndex());
     newParams.fmFeatureNum          = ui.lineEditFMFeatureNum->text().toInt();

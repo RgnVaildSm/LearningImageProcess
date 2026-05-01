@@ -19,7 +19,6 @@ struct AnalyzerParameters{
     SharpnessAlgorithm  sharpnessAlgorithm;     //计算方式
     SharpnessKernel     sharpnessKernel;        //卷积核大小
     int                 sharpnessThreshold;     //锐度阈值
-    bool                sharpnessByGray;        //是否先转灰度图
     // 特征点匹配
     enum class FMAlgorithm {
         ORB,
@@ -47,7 +46,6 @@ struct AnalyzerParameters{
         return sharpnessAlgorithm   == other.sharpnessAlgorithm &&
                sharpnessKernel      == other.sharpnessKernel &&
                sharpnessThreshold   == other.sharpnessThreshold &&
-               sharpnessByGray      == other.sharpnessByGray &&
                fmAlgorithm          == other.fmAlgorithm &&
                fmMatchMethod        == other.fmMatchMethod &&
                fmFeatureNum         == other.fmFeatureNum &&
@@ -62,7 +60,6 @@ struct AnalyzerParameters{
         : sharpnessAlgorithm(SharpnessAlgorithm::Sobel)
         , sharpnessKernel(SharpnessKernel::K3x3)
         , sharpnessThreshold(5)
-        , sharpnessByGray(true)
         , fmAlgorithm(FMAlgorithm::ORB)
         , fmMatchMethod(MatchMethod::BruteForce)
         , fmFeatureNum(500)
@@ -75,6 +72,10 @@ struct AnalyzerParameters{
     AnalyzerParameters& operator=(const AnalyzerParameters& other) = default;
 };
 Q_DECLARE_METATYPE(AnalyzerParameters)
+using SharpnessAlgorithm = AnalyzerParameters::SharpnessAlgorithm;
+using SharpnessKernel    = AnalyzerParameters::SharpnessKernel;
+using FMAlogrithm        = AnalyzerParameters::FMAlgorithm;
+using MatchMethod        = AnalyzerParameters::MatchMethod;
 
 class QLabel;
 class QSpinBox;
