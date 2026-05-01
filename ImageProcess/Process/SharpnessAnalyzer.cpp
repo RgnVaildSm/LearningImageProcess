@@ -23,6 +23,7 @@ double SharpnessAnalyzer::imageProcess(const QImage& image)
         default: break;
     }
     double value = 0.0;
+    //预先转灰
     cv::Mat gray;
     if (!image.isGrayscale())
     {
@@ -47,8 +48,13 @@ double SharpnessAnalyzer::imageProcess(const QImage& image)
 
 double SharpnessAnalyzer::computeSobelSharpness(const cv::Mat& mat, int kernelSize, double threshold)
 {
-    
-    return 0.0;
+    cv::Mat sobelX, sobelY;
+    cv::Sobel(mat, sobelX, CV_64F, 1, 0, kernelSize);
+    cv::Sobel(mat, sobelY, CV_64F, 0, 1, kernelSize);
+    cv::Mat magnitude;
+    cv::magnitude(sobelX, sobelY, magnitude);
+    cv::Scalar meanMagnitude = cv::mean(magnitude);
+    return meanMagnitude[0];
 }
 
 double SharpnessAnalyzer::computeLaplacianSharpness(const cv::Mat& mat, int kernelSize, double threshold)
