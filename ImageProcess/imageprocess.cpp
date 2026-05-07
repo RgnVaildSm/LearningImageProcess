@@ -44,6 +44,7 @@ ImageProcess::ImageProcess(QWidget *parent)
     m_timer->start(500);
     m_timer->start();
     ui.dockWidget->show();
+    ui.pushButtonAnalyzer->setChecked(true);
 }
 
 ImageProcess::~ImageProcess()

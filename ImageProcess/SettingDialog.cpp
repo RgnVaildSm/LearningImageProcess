@@ -50,11 +50,11 @@ void SettingsDialog::ParameterSharpnessInit()
     ui.cmBoxSharpnessAlgorithm->addItem("Laplacian");
     ui.cmBoxSharpnessAlgorithm->addItem("Brenner");
     ui.cmBoxSharpnessKernel->clear();
+    ui.cmBoxSharpnessKernel->addItem("1x1");
     ui.cmBoxSharpnessKernel->addItem("3x3");
     ui.cmBoxSharpnessKernel->addItem("5x5");
     ui.cmBoxSharpnessKernel->addItem("7x7");
-    ui.cmBoxSharpnessKernel->addItem("9x9");
-    ui.lineEditSharpnessThreshold->setText("100");
+    ui.lineEditSharpnessThreshold->setText("5");
 
     ui.cmBoxSharpnessAlgorithm->setCurrentIndex(0);
     ui.cmBoxSharpnessKernel->setCurrentIndex(0);

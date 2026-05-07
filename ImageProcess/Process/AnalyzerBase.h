@@ -87,6 +87,8 @@ public:
     }
 
     template<typename T> void createAnalyzer();    // 创建新分析器 → 自动移入线程
+
+public slots:
     void analyzeImage(const QImage& image);        // 发送图片分析
     void setParameters(const AnalyzerParameters& params);  // 设置参数
 

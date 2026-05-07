@@ -134,10 +134,10 @@ QString AnalyzerFactory::getAnalyzerName(AlgorithmType type)
     switch (type) {
     case AlgorithmType::Sharpness:
         return QStringLiteral("Sharpness");
-        //case AlgorithmType::FeatureMatch:
-        //    return QStringLiteral("特征匹配");
-        //case AlgorithmType::Detect:
-        //    return QStringLiteral("检测");
+    case AlgorithmType::FeatureMatching:
+        return QStringLiteral("FeatureMatching");
+    case AlgorithmType::Detection:
+        return QStringLiteral("Detection");
     default:
         return QStringLiteral("Unknown");
     }

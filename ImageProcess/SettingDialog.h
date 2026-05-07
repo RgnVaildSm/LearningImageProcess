@@ -11,10 +11,10 @@ struct AnalyzerParameters{
         Brenner
     };
     enum class SharpnessKernel {
+        K1x1,
         K3x3,
         K5x5,
-        K7x7,
-        K9x9
+        K7x7
     };
     SharpnessAlgorithm  sharpnessAlgorithm;     //计算方式
     SharpnessKernel     sharpnessKernel;        //卷积核大小
@@ -58,7 +58,7 @@ struct AnalyzerParameters{
     }
     AnalyzerParameters()
         : sharpnessAlgorithm(SharpnessAlgorithm::Sobel)
-        , sharpnessKernel(SharpnessKernel::K3x3)
+        , sharpnessKernel(SharpnessKernel::K1x1)
         , sharpnessThreshold(5)
         , fmAlgorithm(FMAlgorithm::ORB)
         , fmMatchMethod(MatchMethod::BruteForce)
